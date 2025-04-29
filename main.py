@@ -6,7 +6,7 @@ import os
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-CORS(app)  # CORS erlauben
+CORS(app)
 
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -29,21 +29,38 @@ def upload_file():
 
     with fitz.open(file_path) as pdf:
         for page in pdf:
-            text = page.get_text()
-            lines = text.split('\n')
-            for line in lines:
-                line = line.strip()
-                if 'Tour: T-PBG' in line:
+            blocks = page.get_text("blocks")
+            for b in sorted(blocks, key=lambda x: x[1]):  # sortiere nach Y-Position
+                text = b[4].strip()
+                if not text:
+                    continue
+                if 'Tour: T-PBG' in text:
                     current_tour = 'T-PBG'
-                elif 'Tour: T-WRL' in line:
+                    continue
+                elif 'Tour: T-WRL' in text:
                     current_tour = 'T-WRL'
-                elif 'Tour: T-DER' in line:
+                    continue
+                elif 'Tour: T-DER' in text:
                     current_tour = 'T-DER'
-                elif 'Tour: T-HAR' in line:
+                    continue
+                elif 'Tour: T-HAR' in text:
                     current_tour = 'T-HAR'
-                # NEU: Suche nach normalen Adressen mit PLZ
-                elif re.search(r'\b\d{5}\b', line) and current_tour:
-                    addresses_by_tour[current_tour].append(line)
+                    continue
+
+                # Versuche Straße und PLZ/Ort zusammenzuführen
+                if current_tour and re.search(r'\b\d{5}\b', text):
+                    parts = text.split()
+                    plz_index = next((i for i, p in enumerate(parts) if re.fullmatch(r'\d{5}', p)), -1)
+                    if plz_index > 0 and plz_index - 1 >= 0:
+                        try:
+                            plz = parts[plz_index]
+                            ort = parts[plz_index + 1] if len(parts) > plz_index + 1 else ''
+                            strasse = ' '.join(parts[:plz_index - 1])
+                            hausnummer = parts[plz_index - 1]
+                            full_address = f"{strasse} {hausnummer}, {plz} {ort}".strip()
+                            addresses_by_tour[current_tour].append(full_address)
+                        except IndexError:
+                            continue
 
     start_address = 'Schulstraße 98 26903 Surwold'
     result = {}
@@ -52,7 +69,7 @@ def upload_file():
             result[tour] = [start_address] + addresses
 
     if not result:
-        return jsonify({'error': 'Keine Adressen gefunden! Bitte überprüfen Sie die hochgeladene PDF.'}), 400
+        return jsonify({'error': 'Keine vollständigen Adressen gefunden!'}), 400
 
     return jsonify(result)
 
