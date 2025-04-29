@@ -3,6 +3,11 @@ import fitz  # PyMuPDF
 import re
 import os
 from werkzeug.utils import secure_filename
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)  # <<< DAS hinzufügen
+
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
