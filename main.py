@@ -1,15 +1,13 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import fitz  # PyMuPDF
 import re
 import os
 from werkzeug.utils import secure_filename
-from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # <<< DAS hinzufügen
+CORS(app)  # CORS erlauben für alle Domains
 
-
-app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -26,7 +24,6 @@ def upload_file():
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     file.save(file_path)
 
-    # PDF auslesen
     addresses_by_tour = {"T-PBG": [], "T-WRL": [], "T-DER": [], "T-HAR": []}
     current_tour = None
 
@@ -49,10 +46,8 @@ def upload_file():
                         address = match.group(1).replace(',', '').replace('+', ' ').strip()
                         addresses_by_tour[current_tour].append(address)
 
-    # Startpunkt (immer)
     start_address = 'Schulstraße 98 26903 Surwold'
 
-    # Ergebnis vorbereiten
     result = {}
     for tour, addresses in addresses_by_tour.items():
         if addresses:
