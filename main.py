@@ -4,6 +4,7 @@ import fitz  # PyMuPDF
 import re
 import os
 from werkzeug.utils import secure_filename
+from optimize import optimize_route
 
 app = Flask(__name__)
 CORS(app)
@@ -13,7 +14,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/')
 def index():
-    return 'Tourenoptimierung Backend läuft!'
+    return 'Tourenoptimierung Backend mit ORS läuft!'
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -30,7 +31,7 @@ def upload_file():
     with fitz.open(file_path) as pdf:
         for page in pdf:
             blocks = page.get_text("blocks")
-            for b in sorted(blocks, key=lambda x: x[1]):  # sortiere nach Y-Position
+            for b in sorted(blocks, key=lambda x: x[1]):
                 text = b[4].strip()
                 if not text:
                     continue
@@ -47,7 +48,6 @@ def upload_file():
                     current_tour = 'T-HAR'
                     continue
 
-                # Versuche Straße und PLZ/Ort zusammenzuführen
                 if current_tour and re.search(r'\b\d{5}\b', text):
                     parts = text.split()
                     plz_index = next((i for i, p in enumerate(parts) if re.fullmatch(r'\d{5}', p)), -1)
@@ -66,7 +66,9 @@ def upload_file():
     result = {}
     for tour, addresses in addresses_by_tour.items():
         if addresses:
-            result[tour] = [start_address] + addresses
+            full_list = [start_address] + addresses
+            sorted_list = optimize_route(full_list)
+            result[tour] = sorted_list
 
     if not result:
         return jsonify({'error': 'Keine vollständigen Adressen gefunden!'}), 400
