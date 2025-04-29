@@ -6,7 +6,7 @@ import os
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-CORS(app)  # CORS erlauben für alle Domains
+CORS(app)  # CORS erlauben
 
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -47,11 +47,13 @@ def upload_file():
                         addresses_by_tour[current_tour].append(address)
 
     start_address = 'Schulstraße 98 26903 Surwold'
-
     result = {}
     for tour, addresses in addresses_by_tour.items():
         if addresses:
             result[tour] = [start_address] + addresses
+
+    if not result:
+        return jsonify({'error': 'Keine Adressen gefunden! Bitte überprüfen Sie die hochgeladene PDF.'}), 400
 
     return jsonify(result)
 
