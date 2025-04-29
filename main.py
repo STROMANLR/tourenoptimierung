@@ -40,10 +40,10 @@ def upload_file():
                     current_tour = 'T-DER'
                 elif 'Tour: T-HAR' in line:
                     current_tour = 'T-HAR'
-                elif 'maps.google.de/maps' in line and current_tour:
-                    match = re.search(r'q=(.*)', line)
+                elif 'https://www.google.de/maps/place/' in line and current_tour:
+                    match = re.search(r'place/(.*?)/@', line)
                     if match:
-                        address = match.group(1).replace(',', '').replace('+', ' ').strip()
+                        address = match.group(1).replace('+', ' ').replace(',', ', ').strip()
                         addresses_by_tour[current_tour].append(address)
 
     start_address = 'Schulstraße 98 26903 Surwold'
